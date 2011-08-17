@@ -14,17 +14,26 @@ namespace MPSubsonic
     {
         private enum view { 
             servers,
-            folders,
-            subFolder,
-            albums
+            musicFolders,
+            artists,
+            items
         }
 
         //Variables
         private DataWorker dbWorker = DataWorker.getDataWorker();
         private Worker worker = Worker.GetInstance();
         private List<SubSonicServer> servers;              
+        
         private SubSonicServer currServer;
         private view currView;
+        private SubSonicItem currItem;
+
+        private List<int> history;
+
+        List<Artist> artists; 
+        List<SubSonicItem> items;
+        List<SubSonicItem> prevItems = new List<SubSonicItem>();
+        List<SubSonicItem> prevprevItems = new List<SubSonicItem>(); //Yikes!
 
         //Controls
         [SkinControlAttribute(100)] protected GUIListControl listControl = null;
@@ -114,7 +123,7 @@ namespace MPSubsonic
         }
 
         private void GetServers(){
-                        //Get the available servers
+            //Get the available servers
             //TODO try / catch etc.
             servers = dbWorker.getServers();
 
@@ -123,8 +132,11 @@ namespace MPSubsonic
             //TODO bij 1 server, meteen naar folder lijst?
             if (servers.Count > 0)
             {
+                listControl.ListItems.Clear();
                 for (int i = 0; i < servers.Count(); i++)
-                {
+                {                    
+                    currItem = null;
+                    history = null;
                     currView = view.servers;
                     GUIListItem item = new GUIListItem();
                     item.Label = servers[i].Name;
@@ -168,79 +180,148 @@ namespace MPSubsonic
 
         private void UpdateListControl()
         {
-            GUIListItem item;
-            //Dictionary<int, string> folders;
+            //This method takes care of returning the right items to the browse list
+            //The current code is a mess, but couldn't figure out quick enough a nice and clean way
+            //so it definately needs some revision.
+            //TODO rebuild UpdateListControl()
+            
+            GUIListItem item;            
             GUIListItem selectedItem = listControl.SelectedListItem;
             listControl.ListItems.Clear();
 
-            if (selectedItem.Label == "..") {
-                switch (currView) { 
-                    case view.folders:
-                        GetServers();    
-                        break;
-                    case view.subFolder:
-                        currView = view.servers;
-                        break;    
-                    
-                }
-            }
-
+            //View states
+            //servers -> musicFolders -> artists -> items -> items -> items ...
+            
             item = new GUIListItem();
             item.Label = "..";
+            item.ItemId = -1;
             item.IsFolder = true;
-            listControl.Add(item);                       
+            listControl.Add(item);
 
-            if (selectedItem != null) {
-                switch (currView){
-                    case view.servers:
-                        //Which server?
-                        currServer = servers[selectedItem.ItemId];
-                        //Get Folder
-                        Dictionary<int, string> folders = worker.GetMusicFolders(currServer);
-
-                        foreach (KeyValuePair<int, string> folder in folders)
-                        {
-                            item = new GUIListItem();
-                            item.ItemId = folder.Key;
-                            item.Label = folder.Value;
-                            item.IsFolder = true;
-                            listControl.Add(item);
-                        }
-
-                        currView = view.folders;
-                        break;
-                    case view.folders:
-                        //get folder (artists)
-                        List<Artist> artists = worker.GetIndexes(currServer, selectedItem.ItemId);
-                        for (int i = 0; i < artists.Count; i++)
-                        {
-                            item = new GUIListItem();
-                            item.Label = artists[i].Name;
-                            //item.Label2 = artists[i].Id;
-                            item.IsFolder = true;
-                            listControl.Add(item);
-                        }
-                        currView = view.subFolder;                        
-                        break;
-                    case view.subFolder:
-                        //get subfolders
-                        List<SubSonicItem> items = worker.GetMusicDirectory(currServer, selectedItem.Label2);
-                        for (int i = 0; i < items.Count; i++)
-                        {
-                            item = new GUIListItem();
-                            item.Label = items[i].Title;
-                            //.selectedItem.item.Label2 = subfolders[i].Id;
-                            item.IsFolder = items[i].IsDir;
-                            listControl.Add(item);
-                        }
-                        currView = view.subFolder;
-                        break;
-                    case view.albums:
-                        break;
+            if (selectedItem.Label == "..")
+            {
+                if (history.Count < 5)
+                {
+                    //Go back to Artist/Music/Server
+                    switch (history.Count)
+                    {
+                        case 1:
+                            GetServers();
+                            break;
+                        case 2:
+                            currView = view.servers;
+                            break;
+                        case 3:
+                            currView = view.musicFolders;
+                            break;
+                        case 4:
+                            currView = view.artists;
+                            break;
+                    }
+                    history.RemoveAt(history.Count - 1);
+                    selectedItem.ItemId = history[history.Count - 1];                    
                 }
-
+                else
+                {
+                    //Go back to previous item.                                        
+                    history.RemoveAt(history.Count - 1);
+                    selectedItem.ItemId = history[history.Count - 1];
+                    currItem = prevprevItems[selectedItem.ItemId];
+                }
+            }
+            else
+            {
+                    if (history != null)
+                    {
+                        history.Add(selectedItem.ItemId);
+                    }
+                    if (currView == view.items)
+                    {
+                        currItem = items[selectedItem.ItemId];
+                    }
             }
 
+
+
+
+            switch (currView)
+            {
+                case view.servers:
+                    //Which server?
+                    if (selectedItem.ItemId != -1)
+                    {
+                        history = new List<int>();
+                        history.Add(selectedItem.ItemId);
+                        currServer = servers[selectedItem.ItemId];
+                    }
+
+                    //Get Folder
+                    Dictionary<int, string> folders = worker.GetMusicFolders(currServer);
+
+                    foreach (KeyValuePair<int, string> folder in folders)
+                    {
+                        item = new GUIListItem();
+                        item.ItemId = folder.Key;
+                        item.Label = folder.Value;
+                        item.IsFolder = true;
+                        listControl.Add(item);
+                    }
+
+                    currView = view.musicFolders;
+                    break;
+                case view.musicFolders:
+                    //get folder (artists)                                                               
+                    artists = worker.GetIndexes(currServer, selectedItem.ItemId);
+                    for (int i = 0; i < artists.Count; i++)
+                    {
+                        item = new GUIListItem();
+                        item.Label = artists[i].Name;
+                        item.ItemId = i;
+                        item.IsFolder = true;
+                        listControl.Add(item);
+                    }
+                    currView = view.artists;
+                    break;
+                case view.artists:
+                    //get items                        
+                    items = worker.GetMusicDirectory(currServer, artists[selectedItem.ItemId].Id);
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        item = new GUIListItem();
+                        item.Label = items[i].Title;
+                        item.ItemId = i;
+                        item.IsFolder = items[i].IsDir;
+                        listControl.Add(item);
+                    }
+                    currView = view.items;
+                    break;
+                case view.items:
+                    //get (sub) items
+                    
+                    prevprevItems.Clear();
+                    for (int i = 0; i < prevItems.Count; i++)
+                    {
+                        prevprevItems.Add(prevItems[i]);
+                    }
+                    prevItems.Clear();
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        prevItems.Add(items[i]);
+                    }
+                    items = worker.GetMusicDirectory(currServer, currItem.ChildId);
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        item = new GUIListItem();
+                        item.Label = items[i].Title;
+                        item.ItemId = i;
+                        item.IsFolder = items[i].IsDir;
+                        listControl.Add(item);
+                    }
+                    currView = view.items;
+
+                    break;
+            }
+               
             listControl.SelectedListItemIndex = 0;
             GUIControl.FocusControl(GetID, listControl.GetID);
 

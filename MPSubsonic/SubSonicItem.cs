@@ -21,12 +21,12 @@ namespace MPSubsonic
 	   //            size="8421341" contentType="audio/mpeg" suffix="mp3" duration="146" bitRate="128"
 	   //            path="ABBA/Arrival/Dancing Queen.mp3"/>
 
-        private int _childId;       //Folder - Item
-        private int _parentId;      //Folder - Item
+        private string _childId;    //Folder - Item
+        private string _parentId;   //Folder - Item
         private string _title;      //Folder - Item
         private string _artist;     //Folder - Item
         private bool _isDir;        //Folder - Item
-        private int _coverArtId;    //Folder - Item
+        private string _coverArtId; //Folder - Item
         private string _album;      //Item
         private int _track;         //Item
         private int _year;          //Item
@@ -38,7 +38,7 @@ namespace MPSubsonic
         private int _bitrate;       //Item
         private string _path;       //Item
 
-        public int ChildId{
+        public string ChildId{
             set {
                 _childId = value;
             }
@@ -47,7 +47,7 @@ namespace MPSubsonic
             }
         }
 
-        public int ParentId {
+        public string ParentId {
             set {
                 _parentId = value;
             }
@@ -83,7 +83,7 @@ namespace MPSubsonic
             }
         }
 
-        public int CoverArtId {
+        public string CoverArtId {
             set {
                 _coverArtId = value;
             }

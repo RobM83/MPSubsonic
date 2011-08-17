@@ -109,13 +109,17 @@ namespace MPSubsonic
                     for (i = 0; i < xmlFolders.ChildNodes[1].FirstChild.ChildNodes.Count; i++)
                     {
                         //<child id="11" parent="1" title="Arrival" artist="ABBA" isDir="true" coverArt="22"/>  <-- EXAMPLE!
+                        //TODO make fault proof and clean up
                         SubSonicItem item = new SubSonicItem();
-                        item.ChildId    = int.Parse(xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["id"].Value);
-                        item.ParentId   = int.Parse(xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["parent"].Value);
-                        item.Title      = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["title"].Value;
-                        item.Artist     = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["artist"].Value;
+                        item.ChildId    = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["id"].Value;
+                        item.ParentId   = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["parent"].Value;
+                        if (xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["title"] != null)
+                            item.Title      = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["title"].Value;
+                        if (xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["artist"] != null)                       
+                            item.Artist = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["artist"].Value;                        
                         item.IsDir      = bool.Parse(xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["isDir"].Value);
-                        item.CoverArtId = int.Parse(xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["coverArt"].Value);
+                        if (xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["coverArt"] != null)
+                            item.CoverArtId = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["coverArt"].Value;                        
                         items.Add(item);
                     }
                 }
