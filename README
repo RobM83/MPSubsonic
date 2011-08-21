@@ -8,3 +8,4 @@ Be kind these are my first steps in MP Plugin development and it has been a long
 
 [KNOWN LIMITATIONS]
 - Songs placed in the root of a base (MusicFolder) won't appear in the list.
+- URL stream is requested with username & password within the request!!! (So inside use only, would be a good idea!)

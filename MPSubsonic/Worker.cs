@@ -86,9 +86,7 @@ namespace MPSubsonic
 
             return artists;        
         }
-
-        
-
+     
         public List<SubSonicItem> GetMusicDirectory(SubSonicServer server, string folderId) {
             List<SubSonicItem> items = new List<SubSonicItem>();
             
@@ -167,13 +165,22 @@ namespace MPSubsonic
             return folders;
         }
 
+
+        public string GetStreamString(SubSonicServer server, string id)
+        {
+            string url;
+            url = server.Address + "/rest/stream.view?u="+server.UserName+"&p="+server.Password+"&v=" + apiVersion + "&c=" + appName+"&id="+id;
+
+            return url;
+        }
+
         /// <summary>
         ///     Does the specific request to the Subsonic server.
         /// </summary>
         /// <param name="method"></param>
         /// <param name="parameters"></param>
         /// <returns>The XML returned by Subsonic in a string</returns>
-        private static string Request(SubSonicServer server, string method, Dictionary<string, string> parameters) {
+        private static string Request(SubSonicServer server, string method, Dictionary<string, string> parameters, bool streaminsteadofstring = false) {
             string authHeader = server.UserName + ":" + server.Password;
             authHeader = Convert.ToBase64String(Encoding.Default.GetBytes(authHeader));
             
@@ -194,6 +201,9 @@ namespace MPSubsonic
             
             //Long way to get the response as a string
             Stream stream = response.GetResponseStream();
+//            if (streaminsteadofstring)
+//                return stream;
+
             StreamReader reader = new StreamReader(stream);
             string result = reader.ReadToEnd();
 

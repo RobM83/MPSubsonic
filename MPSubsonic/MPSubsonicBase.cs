@@ -7,6 +7,7 @@ using System.Windows.Forms;
 
 using MediaPortal.GUI.Library;
 using MediaPortal.Dialogs;
+using MediaPortal.Player;
 
 namespace MPSubsonic
 {
@@ -163,8 +164,9 @@ namespace MPSubsonic
         {
             if (control == listControl){
                 if (actionType == MediaPortal.GUI.Library.Action.ActionType.ACTION_SELECT_ITEM)
-                    UpdateListControl();
+                    UpdateListControl();            
                 }           
+
             base.OnClicked(controlId, control, actionType);
         }
 
@@ -231,14 +233,26 @@ namespace MPSubsonic
             }
             else
             {
-                    if (history != null)
+                if (currView == view.items)
+                {
+                    currItem = items[selectedItem.ItemId];
+
+                    if (!currItem.IsDir)
                     {
-                        history.Add(selectedItem.ItemId);
+                        //A File
+                        //TODO Make sure it is a audio file (for now!)
+                        g_Player.PlayAudioStream(worker.GetStreamString(currServer, currItem.ChildId));
+                        return;
                     }
-                    if (currView == view.items)
-                    {
-                        currItem = items[selectedItem.ItemId];
-                    }
+
+                }
+
+
+                if (history != null)
+                {
+                    history.Add(selectedItem.ItemId);
+                }
+
             }
 
 
@@ -296,8 +310,7 @@ namespace MPSubsonic
                     currView = view.items;
                     break;
                 case view.items:
-                    //get (sub) items
-                    
+                    //get (sub) items                                       
                     prevprevItems.Clear();
                     for (int i = 0; i < prevItems.Count; i++)
                     {
