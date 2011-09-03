@@ -164,12 +164,24 @@ namespace MPSubsonic
         {
             if (control == listControl){
                 if (actionType == MediaPortal.GUI.Library.Action.ActionType.ACTION_SELECT_ITEM)
-                    UpdateListControl();            
+                    //UpdateListControl();            
+                    play();
                 }           
 
             base.OnClicked(controlId, control, actionType);
         }
 
+
+        private void play()
+        { 
+            //TEST
+            string url = "http://10.0.0.53:4040/rest/download.view?u=Rob&p=RobMaas008&v=1.5.0&c=mp&id=2f6d656469612f6d757369632f6e65772f56657279204e65772f4372656564656e636520436c65727761746572205265766976616c202d2054686520426573742f506167616e2042616279202d204372656564656e636520436c6561727761746572205265766976616c202d2050656e64756c756d202d20526f636b202620526f6c6c2e6d7033";
+            //g_Player.PlayAudioStream(url);
+            //g_Player.Play(url);
+            
+            
+
+        }
 
         //private SubSonicServer getServer(string name) {
         //    for (int i = 0; i < servers.Count; i++) {
