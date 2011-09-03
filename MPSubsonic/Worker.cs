@@ -44,17 +44,24 @@ namespace MPSubsonic
 
             result = Request(server, "ping", null);
             XmlDocument xmlResponse = new XmlDocument();
-            xmlResponse.LoadXml(result);
+            try
+            {
+                xmlResponse.LoadXml(result);
+                if (xmlResponse.ChildNodes[1].Attributes["status"].Value == "ok")
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }            
+            }
+            catch {
+                return false;
+            }
 
 
             //TODO check if the server returns OK.
-            if (xmlResponse.ChildNodes[1].Attributes["status"].Value == "ok")
-            {
-                return true;
-            }
-            else {
-                return false;
-            }            
         }
 
         public List<Artist> GetIndexes(SubSonicServer server, int musicFolderId) {
@@ -197,8 +204,17 @@ namespace MPSubsonic
             WebRequest request = WebRequest.Create(requestURL);
             request.Method = "GET";
             request.Headers["Authorization"] = "Basic " + authHeader;
-            WebResponse response = request.GetResponse();
+            WebResponse response;
+            try
+            {
+                response = request.GetResponse();
+            }
+            catch {
+                response = null;
+                return "";  //TODO Dirty
+            }
             
+
             //Long way to get the response as a string
             Stream stream = response.GetResponseStream();
 //            if (streaminsteadofstring)

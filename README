@@ -1,11 +1,25 @@
 
 This should become a Subsonic plugin for MediaPortal.
 
-At this moment it is still pretty useless. 
-
 Be kind these are my first steps in MP Plugin development and it has been a long time since I wrote code.
 
+** THIS IS STILL VERY VERY ALPHA AND IS DEFINITELY UNSTABLE **
+But I still encourage the brave of you, to test it out and tell me what can be better and what is missing.
+
+[INSTALLING]
+- Copy the MPSubsonic.dll from the bin directory to your mediaportal plugin directory.
+	default: c:\program files\team mediaportal\mediaportal\plugins\windows)
+- Copy the MPSubsonic.xml from the skin to your skin directory.
+	default: c:\programdata\team mediaportal\mediaportal\skin\defaultwide)
 
 [KNOWN LIMITATIONS]
 - Songs placed in the root of a base (MusicFolder) won't appear in the list.
 - URL stream is requested with username & password within the request!!! (So inside use only, would be a good idea!)
+
+[COMPILING]
+The following references should be added, due the differences between a 64 bit or 32 bit Windows (the program files path), the references aren't always loaded.
+- ..\mediaportal\core.dll
+- ..\mediaportal\databases.dll
+- ..\mediaportal\common.utils.dll
+- ..\mediaportal\utils.dll
+- ..\mediaportal\plugins\windows\dialogs.dll
