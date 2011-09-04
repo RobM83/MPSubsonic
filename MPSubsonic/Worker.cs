@@ -64,6 +64,13 @@ namespace MPSubsonic
             //TODO check if the server returns OK.
         }
 
+        public string GetCoverArt(SubSonicServer server, string coverArtId) {
+            string url;
+            url = server.Address + "/rest/getCoverArt.view?u=" + server.UserName + "&p=" + server.Password + "&v=" + apiVersion + "&c=" + appName + "&id=" + coverArtId;
+
+            return url;        
+        }
+
         public List<Artist> GetIndexes(SubSonicServer server, int musicFolderId) {
             //TODO add to request:  string musicFolderId, string modifiedSince
             List<Artist> artists = new List<Artist>();
@@ -114,7 +121,7 @@ namespace MPSubsonic
                     for (i = 0; i < xmlFolders.ChildNodes[1].FirstChild.ChildNodes.Count; i++)
                     {
                         //<child id="11" parent="1" title="Arrival" artist="ABBA" isDir="true" coverArt="22"/>  <-- EXAMPLE!
-                        //TODO make fault proof and clean up
+                        //TODO make fault proof and clean up (and smarter)
                         SubSonicItem item = new SubSonicItem();
                         item.ChildId    = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["id"].Value;
                         item.ParentId   = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["parent"].Value;
@@ -126,6 +133,16 @@ namespace MPSubsonic
                         if (xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["coverArt"] != null)
                             item.CoverArtId = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["coverArt"].Value;                        
                         items.Add(item);
+                        
+                        if (xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["album"] != null) { 
+                            item.Album = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["album"].Value;
+                        }
+                        if (xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["year"] != null){
+                            item.Year = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["year"].Value;
+                        }
+                        if (xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["track"] != null) { 
+                            item.Track = xmlFolders.ChildNodes[1].FirstChild.ChildNodes[i].Attributes["track"].Value;
+                        }
                     }
                 }
             }

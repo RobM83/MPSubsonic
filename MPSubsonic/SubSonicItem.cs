@@ -28,8 +28,8 @@ namespace MPSubsonic
         private bool _isDir;        //Folder - Item
         private string _coverArtId; //Folder - Item
         private string _album;      //Item
-        private int _track;         //Item
-        private int _year;          //Item
+        private string _track;      //Item
+        private string _year;       //Item
         private string _genre;      //Item
         private int _size;          //Item
         private string _contentType;//Item
@@ -101,7 +101,7 @@ namespace MPSubsonic
             }
         }
 
-        public int Track {
+        public string Track {
             set {
                 _track = value;
             }
@@ -110,7 +110,7 @@ namespace MPSubsonic
             }
         }
 
-        public int Year {
+        public string Year {
             set {
                 _year = value;
             }

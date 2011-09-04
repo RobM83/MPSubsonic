@@ -198,20 +198,12 @@ namespace MPSubsonic
             //The current code is a mess, but couldn't figure out quick enough a nice and clean way
             //so it definately needs some revision.
             //TODO rebuild UpdateListControl()
-            
-            GUIListItem item;            
-            GUIListItem selectedItem = listControl.SelectedListItem;
-            listControl.ListItems.Clear();
+                                 
+            GUIListItem selectedItem = listControl.SelectedListItem;            
 
             //View states
             //servers -> musicFolders -> artists -> items -> items -> items ...
             
-            item = new GUIListItem();
-            item.Label = "..";
-            item.ItemId = -1;
-            item.IsFolder = true;
-            listControl.Add(item);
-
             if (selectedItem.Label == "..")
             {
                 if (history.Count < 5)
@@ -254,6 +246,15 @@ namespace MPSubsonic
                         //A File
                         //TODO Make sure it is a audio file (for now!)
                         g_Player.PlayAudioStream(worker.GetStreamString(currServer, currItem.ChildId));
+                        //g_Player.currentTitle = currItem.Title;
+                        //GUIPropertyManager.SetProperty("#Play.Current.Title", Util.Utils.GetFilename(fileName));
+                        //g_Player.currentDescription = currItem.Title;
+                        GUIPropertyManager.SetProperty("#Play.Current.Artist", currItem.Artist);
+                        GUIPropertyManager.SetProperty("#Play.Current.Title", currItem.Title);
+                        GUIPropertyManager.SetProperty("#Play.Current.Album", currItem.Album);
+                        GUIPropertyManager.SetProperty("#Play.Current.Year", currItem.Year.ToString());
+                        GUIPropertyManager.SetProperty("#Play.Current.Track", currItem.Track.ToString());
+                        GUIPropertyManager.SetProperty("#Play.Current.Thumb", worker.GetCoverArt(currServer, currItem.CoverArtId));
                         return;
                     }
 
@@ -267,8 +268,13 @@ namespace MPSubsonic
 
             }
 
-
-
+            listControl.ListItems.Clear();
+            GUIListItem item;  
+            item = new GUIListItem();
+            item.Label = "..";
+            item.ItemId = -1;
+            item.IsFolder = true;
+            listControl.Add(item);            
 
             switch (currView)
             {
