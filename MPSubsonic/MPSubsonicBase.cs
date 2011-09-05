@@ -73,7 +73,7 @@ namespace MPSubsonic
         {
             // WindowID of windowplugin belonging to this setup
             // enter your own unique code
-            return 1;
+            return 827966;
         }
 
         // Indicates if plugin is enabled by default;
