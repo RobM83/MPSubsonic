@@ -8,6 +8,8 @@ using System.Windows.Forms;
 using MediaPortal.GUI.Library;
 using MediaPortal.Dialogs;
 using MediaPortal.Player;
+using MediaPortal.Playlists;
+using MediaPortal.TagReader;
 
 namespace MPSubsonic
 {
@@ -31,14 +33,20 @@ namespace MPSubsonic
 
         private List<int> history;
 
-        List<Artist> artists; 
-        List<SubSonicItem> items;
-        List<SubSonicItem> prevItems = new List<SubSonicItem>();
-        List<SubSonicItem> prevprevItems = new List<SubSonicItem>(); //Yikes!
+        private List<Artist> artists; 
+        private List<SubSonicItem> items;
+        private List<SubSonicItem> prevItems = new List<SubSonicItem>();
+        private List<SubSonicItem> prevprevItems = new List<SubSonicItem>(); //Yikes!
+
+        private PlayList currPlaylist = new PlayList();
+        private PlayListPlayer plPlayer = PlayListPlayer.SingletonPlayer;
 
         //Controls
         [SkinControlAttribute(100)] protected GUIListControl listControl = null;
-        
+        [SkinControlAttribute(2)] protected GUIButtonControl btnSearch = null;
+        [SkinControlAttribute(3)] protected GUIButtonControl btnPlayList = null;
+
+
         
         #region ISetupForm Members
 
@@ -120,6 +128,12 @@ namespace MPSubsonic
         protected override void OnPageLoad()
         {
             base.OnPageLoad();
+
+            plPlayer = PlayListPlayer.SingletonPlayer;
+            plPlayer.Reset();
+            currPlaylist = plPlayer.GetPlaylist(PlayListType.PLAYLIST_MUSIC);            
+            plPlayer.CurrentPlaylistType = PlayListType.PLAYLIST_MUSIC;
+
             GetServers();
         }
 
@@ -166,31 +180,12 @@ namespace MPSubsonic
                 if (actionType == MediaPortal.GUI.Library.Action.ActionType.ACTION_SELECT_ITEM)
                     UpdateListControl();            
                     //play();
-                }           
-
+                }
+            else if (control == btnPlayList){
+                GUIWindowManager.ActivateWindow(827967);
+            }
             base.OnClicked(controlId, control, actionType);
         }
-
-
-        private void play()
-        { 
-            //TEST
-            //string url = "&v=1.5.0&c=mp&id=2f6d656469612f6d757369632f6e65772f56657279204e65772f4372656564656e636520436c65727761746572205265766976616c202d2054686520426573742f506167616e2042616279202d204372656564656e636520436c6561727761746572205265766976616c202d2050656e64756c756d202d20526f636b202620526f6c6c2e6d7033";
-            //g_Player.PlayAudioStream(url);
-            //g_Player.Play(url);
-            
-            
-
-        }
-
-        //private SubSonicServer getServer(string name) {
-        //    for (int i = 0; i < servers.Count; i++) {
-        //        if (servers[i].Name == name) {
-        //            return servers[i];
-        //        }
-        //    }
-        //    return null;
-        //}
 
         private void UpdateListControl()
         {
@@ -242,19 +237,22 @@ namespace MPSubsonic
                     currItem = items[selectedItem.ItemId];
 
                     if (!currItem.IsDir)
-                    {
+                    {                       
+                        
                         //A File
                         //TODO Make sure it is a audio file (for now!)
-                        g_Player.PlayAudioStream(worker.GetStreamString(currServer, currItem.ChildId));
+                      //g_Player.PlayAudioStream(worker.GetStreamString(currServer, currItem.ChildId));
                         //g_Player.currentTitle = currItem.Title;
                         //GUIPropertyManager.SetProperty("#Play.Current.Title", Util.Utils.GetFilename(fileName));
                         //g_Player.currentDescription = currItem.Title;
-                        GUIPropertyManager.SetProperty("#Play.Current.Artist", currItem.Artist);
-                        GUIPropertyManager.SetProperty("#Play.Current.Title", currItem.Title);
-                        GUIPropertyManager.SetProperty("#Play.Current.Album", currItem.Album);
-                        GUIPropertyManager.SetProperty("#Play.Current.Year", currItem.Year.ToString());
-                        GUIPropertyManager.SetProperty("#Play.Current.Track", currItem.Track.ToString());
-                        GUIPropertyManager.SetProperty("#Play.Current.Thumb", worker.GetCoverArt(currServer, currItem.CoverArtId));
+                      //GUIPropertyManager.SetProperty("#Play.Current.Artist", currItem.Artist);
+                      //GUIPropertyManager.SetProperty("#Play.Current.Title", currItem.Title);
+                      //GUIPropertyManager.SetProperty("#Play.Current.Album", currItem.Album);
+                      //GUIPropertyManager.SetProperty("#Play.Current.Year", currItem.Year.ToString());
+                      //GUIPropertyManager.SetProperty("#Play.Current.Track", currItem.Track.ToString());
+                      //GUIPropertyManager.SetProperty("#Play.Current.Thumb", worker.GetCoverArt(currServer, currItem.CoverArtId));
+
+                        AddToPlaylist(currServer, currItem);
                         return;
                     }
 
@@ -359,7 +357,33 @@ namespace MPSubsonic
 
         }
 
+
+        private void AddToPlaylist(SubSonicServer server, SubSonicItem item){
+            PlayListItem mpItem = new PlayListItem(item.Artist + " - " + item.Title, worker.GetStreamString(server, item.ChildId), item.Duration);
+            mpItem.Type = PlayListItem.PlayListItemType.AudioStream;
+            
+            MusicTag tag = new MusicTag();
+            tag.Album = item.Album;
+            tag.Artist = item.Artist;
+            //tag.CoverArtFile = worker.GetCoverArt(server, item.CoverArtId);
+            tag.Year = int.Parse(item.Year);
+            tag.Track = int.Parse(item.Track);            
+            mpItem.MusicTag = tag;
+
+            //playlistPlayer = PlayListPlayer.SingletonPlayer;
+            //PlayList pl = playlistPlayer.GetPlaylist(PlayListType.Video);
+            //playlistPlayer.CurrentPlaylistType = PlayListType.Video;
+
+            currPlaylist.Add(mpItem);
+
+            if (!g_Player.Playing)
+            {
+                plPlayer.Play(0);
+            }
+        }
+
     }
+    
 }
 
     
