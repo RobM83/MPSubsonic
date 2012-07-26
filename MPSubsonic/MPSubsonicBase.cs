@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
+using System.Xml.Serialization;
 using System.Windows.Forms;
 
 using MediaPortal.GUI.Library;
@@ -15,39 +15,99 @@ namespace MPSubsonic
 {
     public class MPSubsonicBase : GUIWindow, ISetupForm
     {
-        private enum view { 
+        private enum view
+        {
             servers,
             musicFolders,
             artists,
             items
         }
 
+        //How should the "icons" look
+        private enum mpView
+        {
+            List,
+            Icons,
+            BigIcons,
+            Albums,
+            Filmstrip,
+            Coverflow
+        }
+
+        #region MapSettings class
+        [Serializable]
+        public class MapSettings
+        {
+            protected int _SortBy;
+            protected int _ViewAs;
+            protected bool _SortAscending;
+
+            public MapSettings()
+            {
+                // Set default view
+                _SortBy = 0;
+                _ViewAs = (int)mpView.List;
+                _SortAscending = true;
+            }
+
+            [XmlElement("SortBy")]
+            public int SortBy
+            {
+                get { return _SortBy; }
+                set { _SortBy = value; }
+            }
+
+            [XmlElement("ViewAs")]
+            public int ViewAs
+            {
+                get { return _ViewAs; }
+                set { _ViewAs = value; }
+            }
+
+            [XmlElement("SortAscending")]
+            public bool SortAscending
+            {
+                get { return _SortAscending; }
+                set { _SortAscending = value; }
+            }
+        }
+        #endregion
+
         //Variables
         private DataWorker dbWorker = DataWorker.getDataWorker();
         private Worker worker = Worker.GetInstance();
-        private List<SubSonicServer> servers;              
-        
+        private List<SubSonicServer> servers;
+
         private SubSonicServer currServer;
         private view currView;
         private SubSonicItem currItem;
 
         private List<int> history;
 
-        private List<Artist> artists; 
+        private List<Artist> artists;
         private List<SubSonicItem> items;
         private List<SubSonicItem> prevItems = new List<SubSonicItem>();
         private List<SubSonicItem> prevprevItems = new List<SubSonicItem>(); //Yikes!
 
-        private PlayList currPlaylist = new PlayList();
-        private PlayListPlayer plPlayer = PlayListPlayer.SingletonPlayer;
+        private MPSubSonicPlayList playList = MPSubSonicPlayList.GetInstance();
+        //private PlayList currPlaylist = new PlayList();
+        //private PlayListPlayer plPlayer = PlayListPlayer.SingletonPlayer;
+
+        private MapSettings mapSettings = new MapSettings();
 
         //Controls
-        [SkinControlAttribute(100)] protected GUIListControl listControl = null;
-        [SkinControlAttribute(2)] protected GUIButtonControl btnSearch = null;
-        [SkinControlAttribute(3)] protected GUIButtonControl btnPlayList = null;
+        //[SkinControlAttribute(100)] protected GUIListControl listControl = null;
+        [SkinControlAttribute(100)]
+        protected GUIFacadeControl listControl = null;
+        [SkinControlAttribute(10)]
+        protected GUIButtonControl btnSwitchView = null;
+        [SkinControlAttribute(20)]
+        protected GUIButtonControl btnSearch = null;
+        [SkinControlAttribute(30)]
+        protected GUIButtonControl btnPlayList = null;
 
 
-        
+
         #region ISetupForm Members
 
         public string PluginName()
@@ -120,7 +180,7 @@ namespace MPSubsonic
 
         //Load skin
         public override bool Init()
-        {           
+        {
             return Load(GUIGraphicsContext.Skin + @"\mpsubsonic.xml");
         }
 
@@ -129,34 +189,36 @@ namespace MPSubsonic
         {
             base.OnPageLoad();
 
-            plPlayer = PlayListPlayer.SingletonPlayer;
-            plPlayer.Reset();
-            currPlaylist = plPlayer.GetPlaylist(PlayListType.PLAYLIST_MUSIC);            
-            plPlayer.CurrentPlaylistType = PlayListType.PLAYLIST_MUSIC;
+            //plPlayer = PlayListPlayer.SingletonPlayer;
+            //plPlayer.Reset();
+            //currPlaylist = plPlayer.GetPlaylist(PlayListType.PLAYLIST_MUSIC);
+            //plPlayer.CurrentPlaylistType = PlayListType.PLAYLIST_MUSIC;
 
             GetServers();
         }
 
-        private void GetServers(){
+        private void GetServers()
+        {
             //Get the available servers
             //TODO try / catch etc.
             servers = dbWorker.getServers();
 
             //Turn the servers in to menu-items
             //TODO add check if the server is available?
-            //TODO bij 1 server, meteen naar folder lijst?
+            //TODO bij 1 server, meteen naar folder lijst? ?
             if (servers.Count > 0)
             {
-                listControl.ListItems.Clear();
+                //listControl.ListItems.Clear();
+                listControl.Clear();
                 for (int i = 0; i < servers.Count(); i++)
-                {                    
+                {
                     currItem = null;
                     history = null;
                     currView = view.servers;
                     GUIListItem item = new GUIListItem();
                     item.Label = servers[i].Name;
                     item.ItemId = i;
-                    item.IsFolder = true;                   
+                    item.IsFolder = true;
                     listControl.Add(item);
                 }
                 listControl.SelectedListItemIndex = 0;
@@ -176,14 +238,25 @@ namespace MPSubsonic
 
         protected override void OnClicked(int controlId, GUIControl control, MediaPortal.GUI.Library.Action.ActionType actionType)
         {
-            if (control == listControl){
+            if (control == listControl)
+            {
                 if (actionType == MediaPortal.GUI.Library.Action.ActionType.ACTION_SELECT_ITEM)
-                    UpdateListControl();            
-                    //play();
-                }
-            else if (control == btnPlayList){
+                    UpdateListControl();
+                //play();
+            }
+            else if (control == btnSwitchView)
+            {
+                //Change view
+                OnShowLayouts();
+                ShowPanel();
+                GUIControl.FocusControl(GetID, control.GetID);                  
+                
+            }
+            else if (control == btnPlayList)
+            {
                 GUIWindowManager.ActivateWindow(827967);
             }
+            
             base.OnClicked(controlId, control, actionType);
         }
 
@@ -192,13 +265,14 @@ namespace MPSubsonic
             //This method takes care of returning the right items to the browse list
             //The current code is a mess, but couldn't figure out quick enough a nice and clean way
             //so it definately needs some revision.
-            //TODO rebuild UpdateListControl()
-                                 
-            GUIListItem selectedItem = listControl.SelectedListItem;            
+            //TODO rebuild UpdateListControl()           
+
+
+            GUIListItem selectedItem = listControl.SelectedListItem;
 
             //View states
             //servers -> musicFolders -> artists -> items -> items -> items ...
-            
+
             if (selectedItem.Label == "..")
             {
                 if (history.Count < 5)
@@ -220,7 +294,7 @@ namespace MPSubsonic
                             break;
                     }
                     history.RemoveAt(history.Count - 1);
-                    selectedItem.ItemId = history[history.Count - 1];                    
+                    selectedItem.ItemId = history[history.Count - 1];
                 }
                 else
                 {
@@ -237,22 +311,10 @@ namespace MPSubsonic
                     currItem = items[selectedItem.ItemId];
 
                     if (!currItem.IsDir)
-                    {                       
-                        
-                        //A File
-                        //TODO Make sure it is a audio file (for now!)
-                      //g_Player.PlayAudioStream(worker.GetStreamString(currServer, currItem.ChildId));
-                        //g_Player.currentTitle = currItem.Title;
-                        //GUIPropertyManager.SetProperty("#Play.Current.Title", Util.Utils.GetFilename(fileName));
-                        //g_Player.currentDescription = currItem.Title;
-                      //GUIPropertyManager.SetProperty("#Play.Current.Artist", currItem.Artist);
-                      //GUIPropertyManager.SetProperty("#Play.Current.Title", currItem.Title);
-                      //GUIPropertyManager.SetProperty("#Play.Current.Album", currItem.Album);
-                      //GUIPropertyManager.SetProperty("#Play.Current.Year", currItem.Year.ToString());
-                      //GUIPropertyManager.SetProperty("#Play.Current.Track", currItem.Track.ToString());
-                      //GUIPropertyManager.SetProperty("#Play.Current.Thumb", worker.GetCoverArt(currServer, currItem.CoverArtId));
-
-                        AddToPlaylist(currServer, currItem);
+                    {
+                        //TODO clean this mess up
+                        currItem.Server = currServer;
+                        AddToPlaylist(currItem);
                         return;
                     }
 
@@ -266,13 +328,14 @@ namespace MPSubsonic
 
             }
 
-            listControl.ListItems.Clear();
-            GUIListItem item;  
+            //listControl.ListItems.Clear();            
+            listControl.Clear();
+            GUIListItem item;
             item = new GUIListItem();
             item.Label = "..";
             item.ItemId = -1;
             item.IsFolder = true;
-            listControl.Add(item);            
+            listControl.Add(item);
 
             switch (currView)
             {
@@ -350,40 +413,96 @@ namespace MPSubsonic
 
                     break;
             }
-               
+
             listControl.SelectedListItemIndex = 0;
             GUIControl.FocusControl(GetID, listControl.GetID);
 
 
         }
 
-
-        private void AddToPlaylist(SubSonicServer server, SubSonicItem item){
-            PlayListItem mpItem = new PlayListItem(item.Artist + " - " + item.Title, worker.GetStreamString(server, item.ChildId), item.Duration);
-            mpItem.Type = PlayListItem.PlayListItemType.AudioStream;
-            
-            MusicTag tag = new MusicTag();
-            tag.Album = item.Album;
-            tag.Artist = item.Artist;
-            //tag.CoverArtFile = worker.GetCoverArt(server, item.CoverArtId);
-            tag.Year = int.Parse(item.Year);
-            tag.Track = int.Parse(item.Track);            
-            mpItem.MusicTag = tag;
-
-            //playlistPlayer = PlayListPlayer.SingletonPlayer;
-            //PlayList pl = playlistPlayer.GetPlaylist(PlayListType.Video);
-            //playlistPlayer.CurrentPlaylistType = PlayListType.Video;
-
-            currPlaylist.Add(mpItem);
-
-            if (!g_Player.Playing)
-            {
-                plPlayer.Play(0);
-            }
+       
+        private void AddToPlaylist(SubSonicItem item)
+        {
+            //TODO remove server and add it to item
+            playList.AddItem(item);
+            Play();            
         }
 
-    }
-    
-}
+        private void Play() {            
+            if (!g_Player.Playing)
+            {
+                //Select the "right" file
+                SubSonicItem item = playList.CurrentItem;
 
+                //Start playing
+                g_Player.PlayAudioStream(worker.GetStreamString(item.Server, item.ChildId));
+
+                //File details
+                g_Player.currentTitle = item.Title;
+                g_Player.currentDescription = item.Title;
+                GUIPropertyManager.SetProperty("#Play.Current.Artist", item.Artist);
+                GUIPropertyManager.SetProperty("#Play.Current.Title", item.Title);
+                GUIPropertyManager.SetProperty("#Play.Current.Album", item.Album);
+                GUIPropertyManager.SetProperty("#Play.Current.Year", item.Year.ToString());
+                GUIPropertyManager.SetProperty("#Play.Current.Track", item.Track.ToString());
+                GUIPropertyManager.SetProperty("#Play.Current.Thumb", worker.GetCoverArt(item.Server, item.CoverArtId));
+            }
+        
+        }
+
+        protected virtual void OnShowLayouts()
+        {
+            GUIDialogMenu guiDialogMenu1 = (GUIDialogMenu)GUIWindowManager.GetWindow(2012);
+            if (guiDialogMenu1 == null)
+                return;
+            guiDialogMenu1.Reset();
+            guiDialogMenu1.SetHeading(792);
+            guiDialogMenu1.Add(GUILocalizeStrings.Get(101));
+            guiDialogMenu1.Add(GUILocalizeStrings.Get(100));
+            guiDialogMenu1.Add(GUILocalizeStrings.Get(417));
+            guiDialogMenu1.Add(GUILocalizeStrings.Get(529));
+            guiDialogMenu1.Add(GUILocalizeStrings.Get(733));
+            guiDialogMenu1.Add(GUILocalizeStrings.Get(791));
+
+            guiDialogMenu1.SelectedLabel = mapSettings.ViewAs;
+            guiDialogMenu1.DoModal(this.GetID);
+            if (guiDialogMenu1.SelectedId == -1)
+                return;
+            mapSettings.ViewAs = guiDialogMenu1.SelectedId - 1;
+        }
+
+        void ShowPanel()
+        {
+            int itemIndex = listControl.SelectedListItemIndex;
+            if (mapSettings.ViewAs == (int)mpView.BigIcons)
+            {
+                listControl.CurrentLayout = GUIFacadeControl.Layout.LargeIcons;
+            }
+            else if (mapSettings.ViewAs == (int)mpView.Albums)
+            {
+                listControl.CurrentLayout = GUIFacadeControl.Layout.AlbumView;
+            }
+            else if (mapSettings.ViewAs == (int)mpView.Icons)
+            {
+                listControl.CurrentLayout = GUIFacadeControl.Layout.SmallIcons;
+            }
+            else if (mapSettings.ViewAs == (int)mpView.List)
+            {
+                listControl.CurrentLayout = GUIFacadeControl.Layout.List;
+            }
+            else if (mapSettings.ViewAs == (int)mpView.Filmstrip)
+            {
+                listControl.CurrentLayout = GUIFacadeControl.Layout.Filmstrip;
+            }
+            else if (mapSettings.ViewAs == (int)mpView.Coverflow)
+            {
+                listControl.CurrentLayout = GUIFacadeControl.Layout.CoverFlow;
+            }
+            if (itemIndex > -1)
+            {
+                GUIControl.SelectItemControl(GetID, listControl.GetID, itemIndex);
+            }
+        }
+    }
+}
     

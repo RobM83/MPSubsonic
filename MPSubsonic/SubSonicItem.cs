@@ -21,6 +21,8 @@ namespace MPSubsonic
 	   //            size="8421341" contentType="audio/mpeg" suffix="mp3" duration="146" bitRate="128"
 	   //            path="ABBA/Arrival/Dancing Queen.mp3"/>
 
+        private SubSonicServer server; //To which server belongs this item
+
         private string _childId;    //Folder - Item
         private string _parentId;   //Folder - Item
         private string _title;      //Folder - Item
@@ -37,6 +39,15 @@ namespace MPSubsonic
         private int _duration;      //Item
         private int _bitrate;       //Item
         private string _path;       //Item
+
+        public SubSonicServer Server {
+            set { 
+                server = value;
+            }
+            get {
+                return server;
+            }
+        }
 
         public string ChildId{
             set {
