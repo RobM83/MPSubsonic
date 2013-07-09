@@ -38,6 +38,7 @@ using MediaPortal.Common.Utils;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
 //[assembly: CompatibleVersion("1.1.6.27644")]
-[assembly: CompatibleVersion("1.1.7.0")]
+//[assembly: CompatibleVersion("1.1.7.0")]
+[assembly: CompatibleVersion("1.4.0.0", "1.2.0.0")]
 [assembly: UsesSubsystem("MP.SkinEngine")]
 [assembly: UsesSubsystem("MP.Config")]
